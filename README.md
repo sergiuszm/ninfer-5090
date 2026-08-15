@@ -2,6 +2,16 @@
 
 > Selected checkpoints. Maximum single-GPU inference performance.
 
+**About this repository.** This is a downstream build of
+[Neroued/ninfer](https://github.com/Neroued/ninfer) that serves Qwen3.8-27B on an RTX 5090. On
+top of upstream it adds serve-layer endpoints (`context_window` and vision modality in
+`/v1/models`, Prometheus `/metrics`, `/slots`) and an fp16-accumulate attention prefill change
+for consumer GPUs. See
+[Qwen3.8-27B: NInfer vs llama.cpp on the RTX 5090](docs/qwen38-rtx5090-vs-llamacpp.md) for the
+measured comparison. The sibling repository
+[sergiuszm/ninfer-4090](https://github.com/sergiuszm/ninfer-4090) carries the RTX 4090 port.
+The rest of this README is upstream's.
+
 NInfer is a from-scratch C++/CUDA inference engine for explicitly registered Qwen checkpoints on a
 single NVIDIA GeForce RTX 5090. It runs text, image, and video prompts through a local CLI or
 OpenAI-/Anthropic-compatible HTTP APIs.
