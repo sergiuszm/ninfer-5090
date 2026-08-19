@@ -5,8 +5,9 @@
 **About this repository.** This is a downstream build of
 [Neroued/ninfer](https://github.com/Neroued/ninfer) that serves Qwen3.8-27B on an RTX 5090. On
 top of upstream it adds serve-layer endpoints (`context_window` and vision modality in
-`/v1/models`, Prometheus `/metrics`, `/slots`) and an fp16-accumulate attention prefill change
-for consumer GPUs. See
+`/v1/models`, Prometheus `/metrics`, `/slots`), slot session persistence with a
+[turn checkpoint ring](docs/turn-checkpoint-ring.md) and auto-save on eviction, and an
+fp16-accumulate attention prefill change for consumer GPUs. See
 [Qwen3.8-27B: NInfer vs llama.cpp on the RTX 5090](docs/qwen38-rtx5090-vs-llamacpp.md) for the
 measured comparison. The sibling repository
 [sergiuszm/ninfer-4090](https://github.com/sergiuszm/ninfer-4090) carries the RTX 4090 port.
@@ -141,6 +142,12 @@ build/apps/ninfer-serve
 ```
 
 Tests, benchmarks, and maintainer tools are excluded from the default build.
+
+Add `--turn-checkpoints 32` to a serve line when clients edit conversation history
+(agent memory updates, message rewrites, regenerated turns): the server then
+re-prefills from the nearest retained turn boundary instead of from zero. The ring
+costs host memory only, about 4.6 GiB per slot at 32 entries. See
+[docs/turn-checkpoint-ring.md](docs/turn-checkpoint-ring.md).
 
 ## Docker
 
