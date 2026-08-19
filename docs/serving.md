@@ -82,8 +82,9 @@ always persists or evicts exactly the session it means - a mismatch (including a
 session) answers 409 `slot_session_mismatch`. Snapshots bind to the exact weights identity, KV
 dtype/geometry, and speculative configuration, and restore refuses anything mismatched.
 Sizing: roughly the configured KV bytes per token times session depth, plus a fixed GDN
-state block (about 300 MiB with a held turn checkpoint on Qwen3.8-27B); a 6.9k-token
-session measures 416 MiB, saving in ~0.24 s and restoring in ~0.12 s on NVMe. The DFlash
+state block (about 300 MiB with a held turn checkpoint on Qwen3.8-27B); with the 4-bit KV
+of the sibling RTX 4090 fork a 6.9k-token session measures 416 MiB, saving in ~0.24 s and
+restoring in ~0.12 s on NVMe - INT8 KV roughly doubles the per-token share. The DFlash
 backend is not supported.
 
 ## OpenAI Chat Completions

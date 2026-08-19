@@ -33,12 +33,14 @@ namespace {
 constexpr char kSessionSnapshotMagic[8] = {'N', 'I', 'N', 'F', 'S', 'E', 'S', '1'};
 constexpr std::uint32_t kSessionSnapshotVersion = 1;
 
-constexpr std::uint32_t kKvFlagPackedV    = 1U << 0;
-constexpr std::uint32_t kKvFlagRotateK    = 1U << 1;
-constexpr std::uint32_t kKvFlagRotateV    = 1U << 2;
-constexpr std::uint32_t kKvFlagPackedK    = 1U << 3;
-constexpr std::uint32_t kKvFlagE8Lattice  = 1U << 4;
-constexpr std::uint32_t kKvFlagE8Root     = 1U << 5;
+// KV layout flag bits of the shared snapshot format; sibling forks with packed/rotated/E8 KV
+// modes set them, this tree always writes and expects zero.
+[[maybe_unused]] constexpr std::uint32_t kKvFlagPackedV   = 1U << 0;
+[[maybe_unused]] constexpr std::uint32_t kKvFlagRotateK   = 1U << 1;
+[[maybe_unused]] constexpr std::uint32_t kKvFlagRotateV   = 1U << 2;
+[[maybe_unused]] constexpr std::uint32_t kKvFlagPackedK   = 1U << 3;
+[[maybe_unused]] constexpr std::uint32_t kKvFlagE8Lattice = 1U << 4;
+[[maybe_unused]] constexpr std::uint32_t kKvFlagE8Root    = 1U << 5;
 
 class SnapshotWriter {
 public:
@@ -339,12 +341,11 @@ ProgramImplCore::save_retained_lane(std::uint32_t lane, std::string_view model_b
     const std::size_t recurrent_bytes = states.recurrent_slot(0, current_slot).bytes();
 
     SnapshotConfig config;
-    config.kv_dtype            = static_cast<std::uint32_t>(kv_dtype);
-    config.kv_quant_group      = kv_quant_group;
-    config.kv_flags            = (kv_packed_v ? kKvFlagPackedV : 0U) |
-                      (kv_rotate_k ? kKvFlagRotateK : 0U) | (kv_rotate_v ? kKvFlagRotateV : 0U) |
-                      (kv_packed_k ? kKvFlagPackedK : 0U) |
-                      (kv_e8_lattice ? kKvFlagE8Lattice : 0U) | (kv_e8_root ? kKvFlagE8Root : 0U);
+    config.kv_dtype       = static_cast<std::uint32_t>(kv_dtype);
+    config.kv_quant_group = kv_quant_group;
+    // This tree carries no packed/rotated/E8 KV layouts; the flags word stays in the format
+    // (always zero here) so snapshots from forks with those modes are rejected cleanly.
+    config.kv_flags             = 0;
     config.speculative_backend  = static_cast<std::uint32_t>(speculative_backend);
     config.draft_window         = draft_window;
     config.page_size            = static_cast<std::uint32_t>(kPagedKVPageSize);
@@ -492,11 +493,8 @@ std::uint32_t ProgramImplCore::restore_retained_lane(std::uint32_t lane,
     const std::size_t conv_bytes      = states.conv_slot(0, current_slot).bytes();
     const std::size_t recurrent_bytes = states.recurrent_slot(0, current_slot).bytes();
 
-    const SnapshotConfig config = read_config(reader);
-    const std::uint32_t expected_flags =
-        (kv_packed_v ? kKvFlagPackedV : 0U) | (kv_rotate_k ? kKvFlagRotateK : 0U) |
-        (kv_rotate_v ? kKvFlagRotateV : 0U) | (kv_packed_k ? kKvFlagPackedK : 0U) |
-        (kv_e8_lattice ? kKvFlagE8Lattice : 0U) | (kv_e8_root ? kKvFlagE8Root : 0U);
+    const SnapshotConfig config        = read_config(reader);
+    const std::uint32_t expected_flags = 0;
     if (config.kv_dtype != static_cast<std::uint32_t>(kv_dtype) ||
         config.kv_quant_group != kv_quant_group || config.kv_flags != expected_flags ||
         config.page_size != static_cast<std::uint32_t>(kPagedKVPageSize) ||
